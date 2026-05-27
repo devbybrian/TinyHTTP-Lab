@@ -1,0 +1,14 @@
+C:\Users\brian\Documents\CSharp\TinyHttp\bin\Debug\net8.0\TinyHttp.exe
+C:\Users\brian\Documents\CSharp\TinyHttp\bin\Debug\net8.0\TinyHttp.deps.json
+C:\Users\brian\Documents\CSharp\TinyHttp\bin\Debug\net8.0\TinyHttp.runtimeconfig.json
+C:\Users\brian\Documents\CSharp\TinyHttp\bin\Debug\net8.0\TinyHttp.dll
+C:\Users\brian\Documents\CSharp\TinyHttp\bin\Debug\net8.0\TinyHttp.pdb
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.AssemblyInfoInputs.cache
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.AssemblyInfo.cs
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.csproj.CoreCompileInputs.cache
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.dll
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\refint\TinyHttp.dll
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.pdb
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.genruntimeconfig.cache
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\ref\TinyHttp.dll

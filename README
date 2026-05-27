@@ -1,0 +1,152 @@
+# TinyHTTP
+
+TinyHTTP is a tiny HTTP server built from scratch in C# using raw TCP sockets.
+
+This project started as a backend/networking learning project and evolved into a practical cybersecurity playground used to explore:
+- TCP connections
+- HTTP requests and responses
+- Network communication
+- Request parsing
+- Routing
+- Input handling
+- Server behavior
+- Security concepts
+
+The goal of TinyHTTP is not to compete with production web servers, but to deeply understand what happens underneath modern frameworks.
+
+---
+
+# Why This Project Exists
+
+Most beginner projects focus on CRUD applications like student managers or library systems.
+
+TinyHTTP takes a different approach.
+
+Instead of only building business logic, this project focuses on understanding:
+- how browsers communicate with servers,
+- how HTTP works,
+- how requests are processed,
+- how responses are generated,
+- and how backend systems can become attack surfaces.
+
+This project is also being used as a practical learning environment for networking and cybersecurity concepts.
+
+---
+
+# Current Features
+
+- TCP server using TcpListener
+- Browser connection handling
+- HTTP request reading
+- HTTP response sending
+- Basic route handling
+- Console request logging
+- Asynchronous communication using async/await
+
+---
+
+# Technologies Used
+
+- C#
+- .NET
+- TCP Networking
+- HTTP Protocol
+
+---
+
+# Learning Goals
+
+This project is helping me learn:
+
+## Backend Development
+- Request/response lifecycle
+- Routing
+- Server-side logic
+- Network communication
+
+## Cybersecurity Concepts
+- Attack surfaces
+- Input validation
+- Request inspection
+- Protocol understanding
+- Defensive thinking
+
+## Networking
+- TCP connections
+- Streams
+- Ports
+- Client-server architecture
+
+---
+
+# Example Routes
+
+| Route | Response |
+|---|---|
+| `/` | Home page |
+| `/about` | About page |
+| Invalid route | 404 Not Found |
+
+---
+
+# Future Plans
+
+Planned features and experiments:
+- Better routing system
+- Static file serving
+- JSON responses
+- Logging system
+- Authentication experiments
+- Request validation
+- Malformed request handling
+- Simple attack simulations
+- Security hardening
+- Monitoring and diagnostics
+
+---
+
+# What I Learned So Far
+
+- Everything sent over a network eventually becomes bytes.
+- Browsers communicate with servers using HTTP requests.
+- TcpListener waits for incoming connections.
+- TcpClient represents an active connection.
+- NetworkStream carries data between client and server.
+- HTTP headers tell browsers how to interpret incoming data.
+- Servers must carefully handle external input.
+
+---
+
+# Running The Project
+
+## Requirements
+- .NET SDK installed
+- Visual Studio or VS Code
+
+## Run
+
+```bash
+dotnet run
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+---
+
+# Project Status
+
+This is an active learning project and will continue evolving as I explore:
+- backend engineering,
+- networking,
+- cybersecurity,
+- and systems programming.
+
+---
+
+# Author
+
+Brian Mkandla
