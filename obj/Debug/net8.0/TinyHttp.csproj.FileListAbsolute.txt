@@ -12,3 +12,4 @@ C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\refint\TinyHttp.dll
 C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.pdb
 C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.genruntimeconfig.cache
 C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\ref\TinyHttp.dll
+C:\Users\brian\Documents\CSharp\TinyHttp\obj\Debug\net8.0\TinyHttp.sourcelink.json

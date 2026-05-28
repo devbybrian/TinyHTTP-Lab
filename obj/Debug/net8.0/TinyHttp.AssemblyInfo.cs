@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TinyHttp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c0cb0c11e33f06d26e41c40457316d2c5a32e61f")]
 [assembly: System.Reflection.AssemblyProductAttribute("TinyHttp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TinyHttp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

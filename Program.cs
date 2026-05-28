@@ -70,35 +70,35 @@ namespace TinyHttp
             string httpVersion = parts[2];
 
             /* ROUTING LOGIC */
-            if (path == "/")
-            {
-                Console.WriteLine("Root path requested.");
-            }
-            else if (path == "/about")
-            {
-                Console.WriteLine("About path requested.");
-            }
-            else if (path == "/hello")
-            {
-                Console.WriteLine("Hello path requested.");
-            }
-            else
-            {
-                Console.WriteLine("404 - Page Not Found");
-            }
+            (string status, string body) response = ("404 Not Found", "HTTP/1.1 404 Not Found");
 
+            if (method == "GET")
+            {
+                response = GetResponseBody(path);
+            }
 
             /* SEND RESPONSE */ 
             // send a standard HTTP response back
-            string httpResponse =   "HTTP/1.1 200 OK\r\n" +
-                                    "Content-Type: text/html\r\n" +
+            string httpResponse =   $"HTTP/1.1 {response.status}\r\n" +
+                                    "Content-Type: text/plain\r\n" +
                                     "Connection: close\r\n\r\n" + 
-                                    "<h1>Hello, World!</h1>";
+                                    $"{response.body}";
             
             byte[] responseBytes = Encoding.UTF8.GetBytes(httpResponse);
             await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
  
             // The connection closes automatically when 'client' is disposed
+        }
+
+        static (string status, string body) GetResponseBody(string path)
+        {
+            return path switch
+            {
+                "/" => ("200 OK", "Home"),
+                "/about" => ("200 OK", "About"),
+                "/hello" => ("200 OK", "Hello, World!"),
+                _ => ("404 Not Found", " Page not found")
+            };
         }
     }
 }
