@@ -46,36 +46,77 @@ namespace TinyHttp
 
             /* REQUEST PARSING */
             requestString = requestString.Replace("\r\n", "\n"); // normalize line endings
+            (string status, string body) response = ("404 Not Found", "Not Found");
+            var isValid = true;
 
             // Get the first line (request line)
             string[] lines = requestString.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length == 0)
             {
-                Console.WriteLine("Empty request received.");
-                return; 
+                response = Error("400 Bad Request", "Empty request");
+                isValid = false;
             }
 
-            string requestLine = lines[0]; // "GET / HTTP/1.1"
-
-            // split into method, path, and version
-            string[] parts = requestLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 3)
+            if (isValid)
             {
-                Console.WriteLine("Malformed request line.");
-                return;
+                string requestLine = lines[0]; // "GET / HTTP/1.1"
+
+                // split into method, path, and version
+                string[] parts = requestLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+                
+                if (parts.Length != 3)  // malformed request line
+                {
+                    response = Error("400 Bad Request", "Malformed  request line");
+                    Console.WriteLine("[WARN] Malformed request line");
+                    isValid = false;
+                }
+                else
+                {
+                    string method = parts[0];
+                    string path = parts[1];
+                    string httpVersion = parts[2];
+
+                    /* REQUEST ROUTING */
+                    if (method == "GET") // only support GET 
+                    {
+                        if (path.StartsWith("/")) // only support paths starting with "/"
+                        {
+                            if (httpVersion != "HTTP/1.1") // only support HTTP/1.1
+                            {
+                                response = Error("505 HTTP Version Not Supported", "Only HTTP/1.1 is supported");
+                                Console.WriteLine("[WARN] HTTP version not supported");
+                            }
+                            else
+                            {
+                                response = GetResponseBody(path);
+                                Console.WriteLine($"[INFO] GET {path}");
+                            }
+                        }
+                        else
+                        {
+                            response = Error("400 Bad Request", "Invalid path");
+                            Console.WriteLine("[WARN] Invalid path");
+                        }
+                    }
+                    else // only GET is supported in this tiny server
+                    {
+                        response = Error("405 Method Not Allowed", "Method not supported");
+                        Console.WriteLine("[WARN] Method not allowed");
+                    }
+
+                    
+                }
             }
+            
+            
 
-            string method = parts[0];
-            string path = parts[1];
-            string httpVersion = parts[2];
-
-            /* ROUTING LOGIC */
-            (string status, string body) response = ("404 Not Found", "HTTP/1.1 404 Not Found");
-
-            if (method == "GET")
+            // Parse and route only if request is valid
+            if (isValid)
             {
-                response = GetResponseBody(path);
+                
             }
+
+            
 
             /* SEND RESPONSE */ 
             // send a standard HTTP response back
@@ -99,6 +140,11 @@ namespace TinyHttp
                 "/hello" => ("200 OK", "Hello, World!"),
                 _ => ("404 Not Found", " Page not found")
             };
+        }
+
+        static (string status, string body) Error(string status, string message)
+        {
+            return (status, message);
         }
     }
 }
