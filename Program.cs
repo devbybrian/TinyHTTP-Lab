@@ -8,6 +8,19 @@ namespace TinyHttp
 {
     class Program
     {
+        public struct ParsedRequest
+        {
+            public string Method { get; init; }
+            public string Path { get; init; }
+            public string HttpVersion { get; init; }
+        }
+        public struct ParseResult
+        {
+            public bool Success { get; init; }
+            public string ErrorMessage { get; init; }
+            public ParsedRequest Request { get; init; }
+        }
+
         public static async Task Main(string[] args)
         {
             /* SERVER SETUP */ 
@@ -59,24 +72,19 @@ namespace TinyHttp
 
             if (isValid)
             {
-                string requestLine = lines[0]; // "GET / HTTP/1.1"
+                var parseResult = ParseRequestLine(lines);
 
-                // split into method, path, and version
-                string[] parts = requestLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-                
-                if (parts.Length != 3)  // malformed request line
+                /* REQUEST ROUTING */
+                if (parseResult.Success == false)
                 {
-                    response = Error("400 Bad Request", "Malformed  request line");
-                    Console.WriteLine("[WARN] Malformed request line");
-                    isValid = false;
+                    response = Error("400 Bad Request", parseResult.ErrorMessage);
                 }
                 else
                 {
-                    string method = parts[0];
-                    string path = parts[1];
-                    string httpVersion = parts[2];
+                    string method = parseResult.Request.Method;
+                    string path = parseResult.Request.Path;
+                    string httpVersion = parseResult.Request.HttpVersion;
 
-                    /* REQUEST ROUTING */
                     if (method == "GET") // only support GET 
                     {
                         if (path.StartsWith("/")) // only support paths starting with "/"
@@ -103,27 +111,13 @@ namespace TinyHttp
                         response = Error("405 Method Not Allowed", "Method not supported");
                         Console.WriteLine("[WARN] Method not allowed");
                     }
-
-                    
                 }
-            }
-            
-            
-
-            // Parse and route only if request is valid
-            if (isValid)
-            {
+                    
                 
             }
-
             
-
             /* SEND RESPONSE */ 
-            // send a standard HTTP response back
-            string httpResponse =   $"HTTP/1.1 {response.status}\r\n" +
-                                    "Content-Type: text/plain\r\n" +
-                                    "Connection: close\r\n\r\n" + 
-                                    $"{response.body}";
+            string httpResponse =   BuildHTTPResponse(response);
             
             byte[] responseBytes = Encoding.UTF8.GetBytes(httpResponse);
             await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
@@ -146,5 +140,44 @@ namespace TinyHttp
         {
             return (status, message);
         }
+
+        /* HTTP response builder */
+        static string BuildHTTPResponse((string status, string body) response) 
+        {
+            return $"HTTP/1.1 {response.status}\r\n" +
+                    "Content-Type: text/plain\r\n" +
+                    "Connection: close\r\n\r\n" + 
+                    $"{response.body}";   
+        }
+
+        public static ParseResult ParseRequestLine(string[] lines)
+        {
+            string requestLine = lines[0]; // "GET / HTTP/1.1"
+            string[] parts = requestLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length < 3)
+            {
+                return new ParseResult
+                {
+                    Success = false,
+                    ErrorMessage = "Malformed request",
+                    Request = default
+                };
+            }
+
+            return new ParseResult
+            {
+                Success = true,
+                ErrorMessage = null,
+                Request = new ParsedRequest
+                {
+                    Method = parts[0],
+                    Path = parts[1],
+                    HttpVersion = parts[2]
+                }
+            };
+        }
+
+
     }
 }
