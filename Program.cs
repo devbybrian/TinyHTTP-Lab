@@ -21,6 +21,13 @@ namespace TinyHttp
             public ParsedRequest Request { get; init; }
         }
 
+        public struct ValidationResult
+        {
+            public bool Success { get; init; }
+            public string HttpStatus { get; init; }
+            public string ErrorMessage { get; init; }
+        }
+
         public static async Task Main(string[] args)
         {
             /* SERVER SETUP */ 
@@ -57,10 +64,10 @@ namespace TinyHttp
             string requestString = Encoding.UTF8.GetString(buffer, 0, bytesRead);
             Console.WriteLine($"Request received:\n{requestString}");
 
-            /* REQUEST PARSING */
+            /* PARSE REQUEST */
             requestString = requestString.Replace("\r\n", "\n"); // normalize line endings
             (string status, string body) response = ("404 Not Found", "Not Found");
-            var isValid = true;
+            var isValid = true; /* UNNECESSARY VARAIABLE */
 
             // Get the first line (request line)
             string[] lines = requestString.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -70,50 +77,37 @@ namespace TinyHttp
                 isValid = false;
             }
 
+            /* VALIDATE REQUEST */
             if (isValid)
             {
                 var parseResult = ParseRequestLine(lines);
 
-                /* REQUEST ROUTING */
+                
                 if (parseResult.Success == false)
                 {
                     response = Error("400 Bad Request", parseResult.ErrorMessage);
                 }
                 else
                 {
+                    // extract method, path, and HTTP version from the parsed request
                     string method = parseResult.Request.Method;
                     string path = parseResult.Request.Path;
                     string httpVersion = parseResult.Request.HttpVersion;
 
-                    if (method == "GET") // only support GET 
+                    // validate the request components and get the appropriate response status and body
+                    ValidationResult validationResult = ValidateRequest(method, path, httpVersion);     
+
+                    /* ROUTE REQUEST */
+                    if (validationResult.Success == true) // validation succeeded, get the appropriate response body for the path
                     {
-                        if (path.StartsWith("/")) // only support paths starting with "/"
-                        {
-                            if (httpVersion != "HTTP/1.1") // only support HTTP/1.1
-                            {
-                                response = Error("505 HTTP Version Not Supported", "Only HTTP/1.1 is supported");
-                                Console.WriteLine("[WARN] HTTP version not supported");
-                            }
-                            else
-                            {
-                                response = GetResponseBody(path);
-                                Console.WriteLine($"[INFO] GET {path}");
-                            }
-                        }
-                        else
-                        {
-                            response = Error("400 Bad Request", "Invalid path");
-                            Console.WriteLine("[WARN] Invalid path");
-                        }
+                        /* GET RESPONSE BODY */
+                        response = GetResponseBody(path);
                     }
-                    else // only GET is supported in this tiny server
+                    else    // validation failed, return the appropriate error response
                     {
-                        response = Error("405 Method Not Allowed", "Method not supported");
-                        Console.WriteLine("[WARN] Method not allowed");
+                        response = (validationResult.HttpStatus, validationResult.ErrorMessage);
                     }
                 }
-                    
-                
             }
             
             /* SEND RESPONSE */ 
@@ -125,7 +119,7 @@ namespace TinyHttp
             // The connection closes automatically when 'client' is disposed
         }
 
-        static (string status, string body) GetResponseBody(string path)
+        static (string status, string body) GetResponseBody(string path) // helper function to determine the response body based on the request path 
         {
             return path switch
             {
@@ -136,13 +130,13 @@ namespace TinyHttp
             };
         }
 
-        static (string status, string body) Error(string status, string message)
+        static (string status, string body) Error(string status, string message)  // helper function to create error responses 
         {
             return (status, message);
         }
 
         /* HTTP response builder */
-        static string BuildHTTPResponse((string status, string body) response) 
+        static string BuildHTTPResponse((string status, string body) response)  // builds a complete HTTP response string from the status and body
         {
             return $"HTTP/1.1 {response.status}\r\n" +
                     "Content-Type: text/plain\r\n" +
@@ -150,12 +144,12 @@ namespace TinyHttp
                     $"{response.body}";   
         }
 
-        public static ParseResult ParseRequestLine(string[] lines)
+        public static ParseResult ParseRequestLine(string[] lines)  // Parses the request line into structured data
         {
             string requestLine = lines[0]; // "GET / HTTP/1.1"
             string[] parts = requestLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
 
-            if (parts.Length < 3)
+            if (parts.Length < 3) 
             {
                 return new ParseResult
                 {
@@ -165,10 +159,10 @@ namespace TinyHttp
                 };
             }
 
-            return new ParseResult
+            return new ParseResult      // create and return ParseResult immediately - prevents mutating
             {
                 Success = true,
-                ErrorMessage = null,
+                ErrorMessage = string.Empty,
                 Request = new ParsedRequest
                 {
                     Method = parts[0],
@@ -178,6 +172,54 @@ namespace TinyHttp
             };
         }
 
-
+        public static ValidationResult ValidateRequest(string method, string path, string version) // validates the request components and returns a ValidationResult indicating success or failure along with appropriate HTTP status and error message 
+        {
+            if (method == "GET") // only support GET 
+            {
+                if (path.StartsWith('/')) // only support paths starting with "/"
+                {
+                    if (version != "HTTP/1.1") // only support HTTP/1.1
+                    {
+                        Console.WriteLine("[WARN] HTTP version not supported");
+                        return new ValidationResult
+                        {
+                            Success = false,
+                            HttpStatus = "505 HTTP Version Not Supported",
+                            ErrorMessage = "Only HTTP/1.1 is supported"
+                        };
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[INFO] GET {path}");
+                        return new ValidationResult
+                        {
+                            Success = true,
+                            HttpStatus = string.Empty,
+                            ErrorMessage = string.Empty
+                        };
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("[WARN] Invalid path");
+                    return new ValidationResult
+                    {
+                        Success = false,
+                        HttpStatus = "400 Bad Request",
+                        ErrorMessage = "Invalid path"
+                    };
+                }
+            }
+            else
+            {
+                Console.WriteLine("[WARN] Method not allowed");
+                return new ValidationResult
+                {
+                    Success = false,
+                    HttpStatus = "405 Method Not Allowed",
+                    ErrorMessage = "Method not supported"                  
+                };
+            }
+        }
     }
 }
