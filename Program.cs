@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace TinyHttp
@@ -13,6 +14,8 @@ namespace TinyHttp
             public string Method { get; init; }
             public string Path { get; init; }
             public string HttpVersion { get; init; }
+
+            public List<Header> Headers { get; init; }
         }
         public struct ParseResult
         {
@@ -20,12 +23,17 @@ namespace TinyHttp
             public string ErrorMessage { get; init; }
             public ParsedRequest Request { get; init; }
         }
-
         public struct ValidationResult
         {
             public bool Success { get; init; }
             public string HttpStatus { get; init; }
             public string ErrorMessage { get; init; }
+        }
+
+        public struct Header
+        {
+            public string Name { get; set; }
+            public string Value { get; set; }
         }
 
         public static async Task Main(string[] args)
@@ -80,7 +88,7 @@ namespace TinyHttp
             /* VALIDATE REQUEST */
             if (isValid)
             {
-                var parseResult = ParseRequestLine(lines);
+                var parseResult = ParseRequest(lines);
 
                 
                 if (parseResult.Success == false)
@@ -93,6 +101,7 @@ namespace TinyHttp
                     string method = parseResult.Request.Method;
                     string path = parseResult.Request.Path;
                     string httpVersion = parseResult.Request.HttpVersion;
+                    List<string> headers = parseResult.Request.Headers.ConvertAll(h => $"{h.Name}: {h.Value}");
 
                     // validate the request components and get the appropriate response status and body
                     ValidationResult validationResult = ValidateRequest(method, path, httpVersion);     
@@ -106,6 +115,12 @@ namespace TinyHttp
                     else    // validation failed, return the appropriate error response
                     {
                         response = (validationResult.HttpStatus, validationResult.ErrorMessage);
+                    }
+
+                    Console.WriteLine("Parsed headers: ");
+                    foreach (var header in headers)
+                    {
+                        Console.WriteLine(header);
                     }
                 }
             }
@@ -135,7 +150,6 @@ namespace TinyHttp
             return (status, message);
         }
 
-        /* HTTP response builder */
         static string BuildHTTPResponse((string status, string body) response)  // builds a complete HTTP response string from the status and body
         {
             return $"HTTP/1.1 {response.status}\r\n" +
@@ -144,11 +158,12 @@ namespace TinyHttp
                     $"{response.body}";   
         }
 
-        public static ParseResult ParseRequestLine(string[] lines)  // Parses the request line into structured data
+        public static ParseResult ParseRequest(string[] lines)  // Parses the request line into structured data
         {
+            // Parse request line
             string requestLine = lines[0]; // "GET / HTTP/1.1"
             string[] parts = requestLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-
+            
             if (parts.Length < 3) 
             {
                 return new ParseResult
@@ -159,6 +174,23 @@ namespace TinyHttp
                 };
             }
 
+            // Parse headers
+            List<Header> headerList = new List<Header>();
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string[] headerParts = lines[i].Split(new[] { ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
+
+                if (headerParts.Length == 2)
+                {
+                    headerList.Add(new Header
+                    {
+                        Name = headerParts[0].Trim(),
+                        Value = headerParts[1].Trim()
+                    });
+                }
+            }
+
             return new ParseResult      // create and return ParseResult immediately - prevents mutating
             {
                 Success = true,
@@ -167,7 +199,8 @@ namespace TinyHttp
                 {
                     Method = parts[0],
                     Path = parts[1],
-                    HttpVersion = parts[2]
+                    HttpVersion = parts[2],
+                    Headers = headerList
                 }
             };
         }
@@ -223,3 +256,29 @@ namespace TinyHttp
         }
     }
 }
+
+
+/*
+    have a header var and store in it headers 1 by 1.
+    loop through the headers list and assign each line to header var
+    split each header var into name and value
+    assign them to a Header object 
+
+    Header HeaderObj = new Header(name, value);
+    List<Header> Headers = new List<Header>();
+
+
+    foreach (var header in headers)
+    {
+        // split each line into name and value
+        headerParts = header.Split(new[] { ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
+
+        // assign name and value to the header object
+        HeaderObj.Name = headerParts[0];
+        HeaderObj.Value = headerParts[1];
+
+        Headers.Add(HeaderObj);
+    }
+
+
+*/
