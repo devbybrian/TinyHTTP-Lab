@@ -29,13 +29,24 @@ namespace TinyHttp
             public string HttpStatus { get; init; }
             public string ErrorMessage { get; init; }
         }
-
         public struct Header
         {
             public string Name { get; set; }
             public string Value { get; set; }
         }
+        public struct HttpResponse
+        {
+            public string Status { get; init; }
+            public string Body { get; init; }
+            List<Header> Headers { get; init; }
+        }
+        public class HttpContext
+        {
+            protected ParseResult RequestData;
+            protected ValidationResult ValidationState;
+            protected HttpResponse HttpResult;
 
+        }
         public static async Task Main(string[] args)
         {
             /* SERVER SETUP */ 
@@ -74,7 +85,11 @@ namespace TinyHttp
 
             /* PARSE REQUEST */
             requestString = requestString.Replace("\r\n", "\n"); // normalize line endings
-            (string status, string body) response = ("404 Not Found", "Not Found");
+            HttpResponse response = new HttpResponse()
+            {
+                Status = "404 Not Found",
+                Body = "Not Found"
+            };
             var isValid = true; /* UNNECESSARY VARAIABLE */
 
             // Get the first line (request line)
@@ -114,7 +129,11 @@ namespace TinyHttp
                     }
                     else    // validation failed, return the appropriate error response
                     {
-                        response = (validationResult.HttpStatus, validationResult.ErrorMessage);
+                        response = new HttpResponse
+                        {
+                            Status = validationResult.HttpStatus,
+                            Body = validationResult.ErrorMessage
+                        };
                     }
 
                     Console.WriteLine("Parsed headers: ");
@@ -134,28 +153,32 @@ namespace TinyHttp
             // The connection closes automatically when 'client' is disposed
         }
 
-        static (string status, string body) GetResponseBody(string path) // helper function to determine the response body based on the request path 
+        static HttpResponse GetResponseBody(string path) // helper function to determine the response body based on the request path 
         {
             return path switch
             {
-                "/" => ("200 OK", "Home"),
-                "/about" => ("200 OK", "About"),
-                "/hello" => ("200 OK", "Hello, World!"),
-                _ => ("404 Not Found", " Page not found")
+                "/" => new HttpResponse { Status = "200 OK", Body = "Home" },
+                "/about" => new HttpResponse { Status = "200 OK", Body = "About" },
+                "/hello" => new HttpResponse { Status = "200 OK", Body = "Hello, World!" },
+                _ => new HttpResponse { Status = "404 Not Found", Body = "Page not found" }
             };
         }
 
-        static (string status, string body) Error(string status, string message)  // helper function to create error responses 
+        static HttpResponse Error(string status, string message)  // helper function to create error responses 
         {
-            return (status, message);
+            return new HttpResponse
+            {
+                Status = status,
+                Body = message
+            };
         }
 
-        static string BuildHTTPResponse((string status, string body) response)  // builds a complete HTTP response string from the status and body
+        static string BuildHTTPResponse(HttpResponse response)  // builds a complete HTTP response string from the status and body
         {
-            return $"HTTP/1.1 {response.status}\r\n" +
+            return $"HTTP/1.1 {response.Status}\r\n" +
                     "Content-Type: text/plain\r\n" +
                     "Connection: close\r\n\r\n" + 
-                    $"{response.body}";   
+                    $"{response.Body}";   
         }
 
         public static ParseResult ParseRequest(string[] lines)  // Parses the request line into structured data
@@ -175,20 +198,40 @@ namespace TinyHttp
             }
 
             // Parse headers
-            List<Header> headerList = new List<Header>();
+            List<Header> headerList = [];
 
             for (int i = 1; i < lines.Length; i++)
             {
                 string[] headerParts = lines[i].Split(new[] { ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if (headerParts.Length == 2)
+                
+                if (headerParts.Length != 2)
                 {
+                    return new ParseResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Malformed header",
+                        Request = default
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(headerParts[0].Trim()))   // return error msg if Header Name is empty
+                {
+                    return new ParseResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Invalid header name",
+                        Request = default
+                    };
+                }
+                else
+                {
+                    // add header
                     headerList.Add(new Header
                     {
                         Name = headerParts[0].Trim(),
                         Value = headerParts[1].Trim()
                     });
-                }
+                }           
             }
 
             return new ParseResult      // create and return ParseResult immediately - prevents mutating
@@ -203,6 +246,28 @@ namespace TinyHttp
                     Headers = headerList
                 }
             };
+        }
+
+        public static void BuildHttpResult(bool success, string status, string body, string error)
+        {
+            
+        }
+        public static Header? GetHeader(List<Header> headers, string name)
+        {
+            if (headers == null || string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            foreach (var header in headers)
+            {
+                if (string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return header;
+                }
+            }
+
+            return null;
         }
 
         public static ValidationResult ValidateRequest(string method, string path, string version) // validates the request components and returns a ValidationResult indicating success or failure along with appropriate HTTP status and error message 
@@ -257,28 +322,3 @@ namespace TinyHttp
     }
 }
 
-
-/*
-    have a header var and store in it headers 1 by 1.
-    loop through the headers list and assign each line to header var
-    split each header var into name and value
-    assign them to a Header object 
-
-    Header HeaderObj = new Header(name, value);
-    List<Header> Headers = new List<Header>();
-
-
-    foreach (var header in headers)
-    {
-        // split each line into name and value
-        headerParts = header.Split(new[] { ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
-
-        // assign name and value to the header object
-        HeaderObj.Name = headerParts[0];
-        HeaderObj.Value = headerParts[1];
-
-        Headers.Add(HeaderObj);
-    }
-
-
-*/
