@@ -40,13 +40,6 @@ namespace TinyHttp
             public string Body { get; init; }
             List<Header> Headers { get; init; }
         }
-        public class HttpContext
-        {
-            protected ParseResult RequestData;
-            protected ValidationResult ValidationState;
-            protected HttpResponse HttpResult;
-
-        }
         public static async Task Main(string[] args)
         {
             /* SERVER SETUP */ 
@@ -81,71 +74,13 @@ namespace TinyHttp
             // read the browser's HTTP request
             int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
             string requestString = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-            Console.WriteLine($"Request received:\n{requestString}");
+            Console.WriteLine($"Request received:\n{requestString}"); 
 
-            /* PARSE REQUEST */
-            requestString = requestString.Replace("\r\n", "\n"); // normalize line endings
-            HttpResponse response = new HttpResponse()
-            {
-                Status = "404 Not Found",
-                Body = "Not Found"
-            };
-            var isValid = true; /* UNNECESSARY VARAIABLE */
-
-            // Get the first line (request line)
-            string[] lines = requestString.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length == 0)
-            {
-                response = Error("400 Bad Request", "Empty request");
-                isValid = false;
-            }
-
-            /* VALIDATE REQUEST */
-            if (isValid)
-            {
-                var parseResult = ParseRequest(lines);
-
-                
-                if (parseResult.Success == false)
-                {
-                    response = Error("400 Bad Request", parseResult.ErrorMessage);
-                }
-                else
-                {
-                    // extract method, path, and HTTP version from the parsed request
-                    string method = parseResult.Request.Method;
-                    string path = parseResult.Request.Path;
-                    string httpVersion = parseResult.Request.HttpVersion;
-                    List<string> headers = parseResult.Request.Headers.ConvertAll(h => $"{h.Name}: {h.Value}");
-
-                    // validate the request components and get the appropriate response status and body
-                    ValidationResult validationResult = ValidateRequest(method, path, httpVersion);     
-
-                    /* ROUTE REQUEST */
-                    if (validationResult.Success == true) // validation succeeded, get the appropriate response body for the path
-                    {
-                        /* GET RESPONSE BODY */
-                        response = GetResponseBody(path);
-                    }
-                    else    // validation failed, return the appropriate error response
-                    {
-                        response = new HttpResponse
-                        {
-                            Status = validationResult.HttpStatus,
-                            Body = validationResult.ErrorMessage
-                        };
-                    }
-
-                    Console.WriteLine("Parsed headers: ");
-                    foreach (var header in headers)
-                    {
-                        Console.WriteLine(header);
-                    }
-                }
-            }
+            // process request
+            HttpResponse response = ProcessHttpRequest(requestString);
             
             /* SEND RESPONSE */ 
-            string httpResponse =   BuildHTTPResponse(response);
+            string httpResponse = BuildHTTPResponse(response);
             
             byte[] responseBytes = Encoding.UTF8.GetBytes(httpResponse);
             await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
@@ -248,10 +183,6 @@ namespace TinyHttp
             };
         }
 
-        public static void BuildHttpResult(bool success, string status, string body, string error)
-        {
-            
-        }
         public static Header? GetHeader(List<Header> headers, string name)
         {
             if (headers == null || string.IsNullOrEmpty(name))
@@ -270,45 +201,9 @@ namespace TinyHttp
             return null;
         }
 
-        public static ValidationResult ValidateRequest(string method, string path, string version) // validates the request components and returns a ValidationResult indicating success or failure along with appropriate HTTP status and error message 
+        public static ValidationResult ValidateMethod(String method)
         {
-            if (method == "GET") // only support GET 
-            {
-                if (path.StartsWith('/')) // only support paths starting with "/"
-                {
-                    if (version != "HTTP/1.1") // only support HTTP/1.1
-                    {
-                        Console.WriteLine("[WARN] HTTP version not supported");
-                        return new ValidationResult
-                        {
-                            Success = false,
-                            HttpStatus = "505 HTTP Version Not Supported",
-                            ErrorMessage = "Only HTTP/1.1 is supported"
-                        };
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[INFO] GET {path}");
-                        return new ValidationResult
-                        {
-                            Success = true,
-                            HttpStatus = string.Empty,
-                            ErrorMessage = string.Empty
-                        };
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("[WARN] Invalid path");
-                    return new ValidationResult
-                    {
-                        Success = false,
-                        HttpStatus = "400 Bad Request",
-                        ErrorMessage = "Invalid path"
-                    };
-                }
-            }
-            else
+            if (method != "GET")
             {
                 Console.WriteLine("[WARN] Method not allowed");
                 return new ValidationResult
@@ -318,6 +213,141 @@ namespace TinyHttp
                     ErrorMessage = "Method not supported"                  
                 };
             }
+            else
+            {
+                return new ValidationResult
+                {
+                    Success = true,
+                    HttpStatus = string.Empty,
+                    ErrorMessage = string.Empty
+                };
+            }
+        }
+
+        public static ValidationResult ValidatePath(String path)
+        {
+            if (!path.StartsWith('/')) // only support paths starting with "/"
+            {
+                Console.WriteLine("[WARN] Invalid path");
+                return new ValidationResult
+                {
+                    Success = false,
+                    HttpStatus = "400 Bad Request",
+                    ErrorMessage = "Invalid path"
+                };
+            }
+            else
+            {
+                return new ValidationResult
+                {
+                    Success = true,
+                    HttpStatus = string.Empty,
+                    ErrorMessage = string.Empty
+                };
+            }
+        }
+
+        public static ValidationResult ValidateVersion(String version)
+        {
+            if (version != "HTTP/1.1") // only support HTTP/1.1
+            {
+                Console.WriteLine("[WARN] HTTP version not supported");
+                return new ValidationResult
+                {
+                    Success = false,
+                    HttpStatus = "505 HTTP Version Not Supported",
+                    ErrorMessage = "Only HTTP/1.1 is supported"
+                };
+            }
+            else
+            {
+                return new ValidationResult
+                {
+                    Success = true,
+                    HttpStatus = string.Empty,
+                    ErrorMessage = string.Empty
+                };
+            }
+        }
+
+        public static ValidationResult ValidateRequest(string method, string path, string version) // validates the request components and returns a ValidationResult indicating success or failure along with appropriate HTTP status and error message 
+        {
+
+            ValidationResult result = ValidateMethod(method);
+            
+            if (!result.Success)
+                return result;
+
+            result = ValidatePath(path);
+
+            if (!result.Success)
+                return result;
+
+            result = ValidateVersion(version);
+
+            if (!result.Success)
+                return result;
+
+            return result;
+        }
+
+        public static HttpResponse ProcessHttpRequest(String requestString)
+        {
+            /* PARSE REQUEST */
+            requestString = requestString.Replace("\r\n", "\n"); // normalize line endings
+            HttpResponse response = new HttpResponse()
+            {
+                Status = "404 Not Found",
+                Body = "Not Found"
+            };
+
+            // Get the first line (request line)
+            string[] lines = requestString.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length == 0)
+            {
+                response = Error("400 Bad Request", "Empty request");
+            }
+
+            /* VALIDATE REQUEST */
+            var parseResult = ParseRequest(lines);
+            
+            if (parseResult.Success == false)
+            {
+                response = Error("400 Bad Request", parseResult.ErrorMessage);
+            }
+            else
+            {
+                // extract method, path, and HTTP version from the parsed request
+                string method = parseResult.Request.Method;
+                string path = parseResult.Request.Path;
+                string httpVersion = parseResult.Request.HttpVersion;
+                List<string> headers = parseResult.Request.Headers.ConvertAll(h => $"{h.Name}: {h.Value}");
+
+                // validate the request components and get the appropriate response status and body
+                ValidationResult validationResult = ValidateRequest(method, path, httpVersion);     
+
+                /* ROUTE REQUEST */
+                if (validationResult.Success == true) // validation succeeded, get the appropriate response body for the path
+                {
+                    /* GET RESPONSE BODY */
+                    response = GetResponseBody(path);
+                }
+                else    // validation failed, return the appropriate error response
+                {
+                    response = new HttpResponse
+                    {
+                        Status = validationResult.HttpStatus,
+                        Body = validationResult.ErrorMessage
+                    };
+                }
+
+                Console.WriteLine("Parsed headers: ");
+                foreach (var header in headers)
+                {
+                    Console.WriteLine(header);
+                }
+            }
+            return response;
         }
     }
 }
